@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Nodus\DockerTools\Command;
+namespace Nodus\DevTools\Command;
 
 use Composer\Command\BaseCommand;
 use Composer\Factory;
-use Nodus\DockerTools\Config;
-use Nodus\DockerTools\Runner;
+use Nodus\DevTools\Config;
+use Nodus\DevTools\Runner;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 
-abstract class DockerCommand extends BaseCommand
+abstract class AbstractDevCommand extends BaseCommand
 {
     protected function projectRoot(): string
     {
@@ -79,5 +79,63 @@ abstract class DockerCommand extends BaseCommand
             InputOption::VALUE_REQUIRED,
             'Ziel-Environment (dev|stage|prod)'
         );
+    }
+
+    protected function config(): Config
+    {
+        return Config::load($this->projectRoot());
+    }
+
+    /**
+     * Fuehrt einen Host-Befehl im Projekt-Root aus (TTY durchgereicht).
+     *
+     * @param  list<string>  $cmd
+     */
+    protected function runHost(array $cmd): int
+    {
+        $line = 'cd '.escapeshellarg($this->projectRoot()).' && '.implode(' ', array_map('escapeshellarg', $cmd));
+
+        passthru($line, $code);
+
+        return $code;
+    }
+
+    /**
+     * Pfad zu einer projektlokalen oder zentral mitgelieferten QA-Config.
+     * Reihenfolge: explizit konfiguriert -> lokal im Projekt -> Paket-Default.
+     */
+    protected function resolveQaConfig(?string $configured, string $localName, string $packageDefault): ?string
+    {
+        if (is_string($configured) && $configured !== '') {
+            return $configured;
+        }
+
+        $local = $this->projectRoot().'/'.$localName;
+        if (is_file($local)) {
+            return $local; // erbt i. d. R. die zentrale Config via includes/import
+        }
+
+        $bundled = Config::packageRoot().'/'.$packageDefault;
+
+        return is_file($bundled) ? $bundled : null;
+    }
+
+    /**
+     * Ermittelt den Test-Runner-Befehl als Tokens.
+     *
+     * @return list<string>
+     */
+    protected function testCommand(Config $config): array
+    {
+        if (is_string($config->test) && $config->test !== '') {
+            return array_values(array_filter(preg_split('/\s+/', trim($config->test)) ?: []));
+        }
+
+        // Heuristik: Pest, sonst artisan test
+        if (is_file($this->projectRoot().'/vendor/bin/pest')) {
+            return ['vendor/bin/pest'];
+        }
+
+        return [...$config->artisanTokens(), 'test'];
     }
 }

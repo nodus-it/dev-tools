@@ -1,15 +1,17 @@
 {
-    "name": "nodus-it/docker-tools",
-    "description": "Einheitliche Docker-Compose-Befehle fuer Nodus-Projekte via Composer (d:up, d:sh, ...) und bin/nd.",
+    "name": "nodus-it/dev-tools",
+    "description": "Einheitliche Dev-Befehle fuer Nodus-Projekte via Composer (d:* Docker, qa:* Lint/Analyse/Test) und bin/nd.",
     "type": "composer-plugin",
     "keywords": [
         "docker",
         "docker-compose",
+        "phpstan",
+        "pint",
         "composer-plugin",
         "developer-tools",
         "nodus-it"
     ],
-    "homepage": "https://github.com/nodus-it/docker-tools",
+    "homepage": "https://github.com/nodus-it/dev-tools",
     "license": "MIT",
     "authors": [
         {
@@ -20,25 +22,27 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/nodus-it/docker-tools/issues",
-        "source": "https://github.com/nodus-it/docker-tools"
+        "issues": "https://github.com/nodus-it/dev-tools/issues",
+        "source": "https://github.com/nodus-it/dev-tools"
     },
     "require": {
         "php": "^8.2",
-        "composer-plugin-api": "^2.0"
+        "composer-plugin-api": "^2.0",
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^2.1"
     },
     "require-dev": {
         "composer/composer": "^2.7"
     },
     "autoload": {
         "psr-4": {
-            "Nodus\\DockerTools\\": "src/"
+            "Nodus\\DevTools\\": "src/"
         }
     },
     "bin": [
         "bin/nd"
     ],
     "extra": {
-        "class": "Nodus\\DockerTools\\Plugin"
+        "class": "Nodus\\DevTools\\Plugin"
     }
 }

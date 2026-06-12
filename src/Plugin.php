@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nodus\DockerTools;
+namespace Nodus\DevTools;
 
 use Composer\Composer;
 use Composer\IO\IOInterface;
@@ -11,10 +11,10 @@ use Composer\Plugin\Capable;
 use Composer\Plugin\PluginInterface;
 
 /**
- * Registriert die d:*-Befehle bei Composer.
+ * Registriert die d:*- und qa:*-Befehle bei Composer.
  *
  * Damit ein Projekt das Plugin nutzen darf, muss in dessen composer.json stehen:
- *   "config": { "allow-plugins": { "nodus-it/docker-tools": true } }
+ *   "config": { "allow-plugins": { "nodus-it/dev-tools": true } }
  */
 final class Plugin implements PluginInterface, Capable
 {

@@ -4,10 +4,11 @@
 declare(strict_types=1);
 
 /*
- * nd — Nodus Docker Tools CLI
+ * nd — Nodus Dev Tools CLI
  *
- * Standalone: liest composer.json -> extra.nodus-docker und ruft "docker compose"
- * mit den passenden -f-Dateien auf. Braucht keinen Composer-Runtime, nur PHP.
+ * Standalone: liest composer.json -> extra.nodus-dev und ruft je nach Befehl
+ * "docker compose" (d:*) oder die QA-Tools (pint/phpstan/test) auf.
+ * Braucht keinen Composer-Runtime, nur PHP.
  *
  * Aufruf:  nd <befehl> [--env=dev|stage|prod] [args...]
  */
@@ -38,26 +39,69 @@ function nd_load_config(string $root): array
             'stage' => ['compose.yml', 'compose.stage.yml'],
             'prod' => ['compose.yml', 'compose.prod.yml'],
         ],
+        'test' => null,
+        'pint-config' => null,
+        'phpstan-config' => null,
     ];
 
     $file = $root.'/composer.json';
     if (is_file($file)) {
         $json = json_decode((string) file_get_contents($file), true);
-        if (is_array($json) && isset($json['extra']['nodus-docker']) && is_array($json['extra']['nodus-docker'])) {
-            return array_replace($defaults, $json['extra']['nodus-docker']);
+        if (is_array($json) && isset($json['extra']['nodus-dev']) && is_array($json['extra']['nodus-dev'])) {
+            return array_replace($defaults, $json['extra']['nodus-dev']);
         }
     }
 
     return $defaults;
 }
 
+function nd_tokens(string $value): array
+{
+    return array_values(array_filter(preg_split('/\s+/', trim($value)) ?: []));
+}
+
+/** Lokale QA-Config bevorzugen, sonst die zentral mitgelieferte. */
+function nd_qa_config(string $root, ?string $configured, string $localName, string $packageDefault): ?string
+{
+    if (is_string($configured) && $configured !== '') {
+        return $configured;
+    }
+    if (is_file($root.'/'.$localName)) {
+        return $root.'/'.$localName;
+    }
+    $bundled = $root.'/vendor/nodus-it/dev-tools/'.$packageDefault;
+
+    return is_file($bundled) ? $bundled : null;
+}
+
+function nd_test_cmd(string $root, array $config): array
+{
+    if (is_string($config['test']) && $config['test'] !== '') {
+        return nd_tokens($config['test']);
+    }
+    if (is_file($root.'/vendor/bin/pest')) {
+        return ['vendor/bin/pest'];
+    }
+
+    return [...nd_tokens((string) $config['artisan']), 'test'];
+}
+
+function nd_run(string $root, array $cmd): int
+{
+    $line = 'cd '.escapeshellarg($root).' && '.implode(' ', array_map('escapeshellarg', $cmd));
+    passthru($line, $code);
+
+    return $code;
+}
+
 function nd_help(string $self, string $appService): string
 {
     return <<<TXT
-nd — Nodus Docker Tools
+nd — Nodus Dev Tools
 
 Aufruf: {$self} <befehl> [--env=dev|stage|prod] [args...]
 
+Docker:
   up            Container starten (up -d)
   down          Container stoppen
   build         Images bauen
@@ -68,10 +112,17 @@ Aufruf: {$self} <befehl> [--env=dev|stage|prod] [args...]
   run ...       Einmal-Container (run --rm)
   art ...       artisan im App-Container
   fresh         artisan migrate:fresh --seed
+
+QA / Projekt:
+  pint          Code-Style fixen (--test = nur pruefen)
+  stan          PHPStan-Analyse
+  test          Tests (Pest/PHPUnit/artisan test)
+  qa            pint --test -> stan -> test
+  setup         Projekt einrichten (.env, key, migrate, npm, Boost)
+
   help          Diese Hilfe
 
-Environment-Default und Compose-Dateien kommen aus
-composer.json -> extra.nodus-docker.
+Konfiguration: composer.json -> extra.nodus-dev
 
 TXT;
 }
@@ -81,7 +132,7 @@ $self = basename($argv[0] ?? 'nd');
 $args = array_slice($argv, 1);
 $sub = array_shift($args) ?? 'help';
 
-// --env / -e herausfiltern
+// --env / -e herausfiltern (nur fuer Docker relevant, schadet sonst nicht)
 $env = null;
 $rest = [];
 for ($i = 0, $n = count($args); $i < $n; $i++) {
@@ -103,21 +154,103 @@ for ($i = 0, $n = count($args); $i < $n; $i++) {
 
 $root = nd_find_root();
 $config = nd_load_config($root);
-$env ??= $config['default-env'];
-$dir = $config['dir'];
 $service = $config['app-service'];
-$artisan = array_values(array_filter(preg_split('/\s+/', trim((string) $config['artisan'])) ?: []));
+$artisan = nd_tokens((string) $config['artisan']);
 
 if (in_array($sub, ['help', '--help', '-h', ''], true)) {
     fwrite(STDOUT, nd_help($self, $service));
     exit($sub === '' ? 1 : 0);
 }
 
-$known = ['up', 'down', 'build', 'ps', 'logs', 'sh', 'exec', 'run', 'art', 'artisan', 'fresh'];
-if (! in_array($sub, $known, true)) {
+// ---- QA / Projekt-Befehle (laufen auf dem Host) ------------------------------
+
+$pintCmd = function () use ($root, $config, $rest): array {
+    $cmd = ['vendor/bin/pint', ...$rest];
+    if (! in_array('--config', $rest, true) && ! array_filter($rest, fn ($a) => str_starts_with($a, '--config='))) {
+        $cfg = nd_qa_config($root, $config['pint-config'], 'pint.json', 'config/pint.json');
+        if ($cfg !== null) {
+            $cmd[] = '--config='.$cfg;
+        }
+    }
+
+    return $cmd;
+};
+
+$stanCmd = function () use ($config, $rest): array {
+    $cmd = ['vendor/bin/phpstan', 'analyse', '--no-progress', ...$rest];
+    if (is_string($config['phpstan-config']) && $config['phpstan-config'] !== '') {
+        $cmd[] = '--configuration='.$config['phpstan-config'];
+    }
+
+    return $cmd;
+};
+
+switch ($sub) {
+    case 'pint':
+        exit(nd_run($root, $pintCmd()));
+
+    case 'stan':
+    case 'phpstan':
+        exit(nd_run($root, $stanCmd()));
+
+    case 'test':
+        exit(nd_run($root, [...nd_test_cmd($root, $config), ...$rest]));
+
+    case 'qa':
+        $pint = ['vendor/bin/pint', '--test'];
+        $cfg = nd_qa_config($root, $config['pint-config'], 'pint.json', 'config/pint.json');
+        if ($cfg !== null) {
+            $pint[] = '--config='.$cfg;
+        }
+        $steps = ['Pint' => $pint, 'PHPStan' => $stanCmd(), 'Tests' => nd_test_cmd($root, $config)];
+        foreach ($steps as $label => $cmd) {
+            fwrite(STDOUT, "==> {$label}\n");
+            $code = nd_run($root, $cmd);
+            if ($code !== 0) {
+                fwrite(STDERR, "{$label} fehlgeschlagen (Exit {$code}).\n");
+                exit($code);
+            }
+        }
+        fwrite(STDOUT, "QA gruen.\n");
+        exit(0);
+
+    case 'setup':
+        if (! is_file($root.'/.env') && is_file($root.'/.env.example')) {
+            fwrite(STDOUT, "==> .env aus .env.example\n");
+            copy($root.'/.env.example', $root.'/.env');
+        }
+        $hasArtisan = is_file($root.'/artisan');
+        if ($hasArtisan) {
+            foreach ([[...$artisan, 'key:generate'], [...$artisan, 'migrate', '--force']] as $cmd) {
+                if (($code = nd_run($root, $cmd)) !== 0) {
+                    exit($code);
+                }
+            }
+        }
+        if (is_file($root.'/package.json')) {
+            foreach ([['npm', 'install', '--no-audit', '--no-fund'], ['npm', 'run', 'build']] as $cmd) {
+                if (($code = nd_run($root, $cmd)) !== 0) {
+                    exit($code);
+                }
+            }
+        }
+        if ($hasArtisan && is_dir($root.'/vendor/laravel/boost')) {
+            nd_run($root, [...$artisan, 'boost:install', '--no-interaction']);
+        }
+        fwrite(STDOUT, "Setup abgeschlossen.\n");
+        exit(0);
+}
+
+// ---- Docker-Befehle ----------------------------------------------------------
+
+$dockerKnown = ['up', 'down', 'build', 'ps', 'logs', 'sh', 'exec', 'run', 'art', 'artisan', 'fresh'];
+if (! in_array($sub, $dockerKnown, true)) {
     fwrite(STDERR, "Unbekannter Befehl '{$sub}'. 'nd help' zeigt alle Befehle.\n");
     exit(1);
 }
+
+$env ??= $config['default-env'];
+$dir = $config['dir'];
 
 if (! isset($config['environments'][$env])) {
     fwrite(STDERR, "Unbekanntes Environment '{$env}'. Bekannt: ".implode(', ', array_keys($config['environments']))."\n");
@@ -143,6 +276,4 @@ $cmd = match ($sub) {
     'fresh' => [...$base, 'exec', $service, ...$artisan, 'migrate:fresh', '--seed', ...$rest],
 };
 
-$line = 'cd '.escapeshellarg($root).' && '.implode(' ', array_map('escapeshellarg', $cmd));
-passthru($line, $code);
-exit($code);
+exit(nd_run($root, $cmd));

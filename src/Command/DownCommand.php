@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Nodus\DockerTools\Command;
+namespace Nodus\DevTools\Command;
 
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-final class DownCommand extends DockerCommand
+final class DownCommand extends AbstractDevCommand
 {
     protected function configure(): void
     {

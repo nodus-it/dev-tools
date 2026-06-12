@@ -1,0 +1,21 @@
+# Zentrale PHPStan-Basis fuer Nodus-Projekte.
+#
+# NICHT direkt als --configuration nutzen (enthaelt bewusst KEINE `paths`).
+# Stattdessen im Projekt eine duenne phpstan.neon anlegen, die diese erbt:
+#
+#   includes:
+#       - vendor/nodus-it/dev-tools/config/phpstan.neon
+#   parameters:
+#       level: 6
+#       paths:
+#           - app
+#           - src
+#
+# Laravel-Projekte ergaenzen larastan in ihrer eigenen require-dev und
+# nehmen es zusaetzlich in die lokale includes-Liste auf (dev-tools bleibt
+# framework-agnostisch und zieht kein illuminate/* mit).
+
+parameters:
+    level: 5
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false

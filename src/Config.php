@@ -2,14 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Nodus\DockerTools;
+namespace Nodus\DevTools;
 
 /**
- * Liest die Projekt-Konfiguration aus composer.json -> extra.nodus-docker.
+ * Liest die Projekt-Konfiguration aus composer.json -> extra.nodus-dev.
  * Alle Felder haben Defaults, damit das Tool auch ohne Konfiguration laeuft.
  */
 final class Config
 {
+    // -- Docker (d:*) --------------------------------------------------------
+
     public string $dir = '.tools/docker';
 
     public string $appService = 'app';
@@ -25,6 +27,17 @@ final class Config
         'prod' => ['compose.yml', 'compose.prod.yml'],
     ];
 
+    // -- QA (qa:*) -----------------------------------------------------------
+
+    /** Test-Runner-Befehl; null => Heuristik (pest, sonst artisan test). */
+    public ?string $test = null;
+
+    /** Optionaler Pfad zur projektlokalen Pint-Config (sonst: lokale pint.json / Paket-Default). */
+    public ?string $pintConfig = null;
+
+    /** Optionaler Pfad zur projektlokalen PHPStan-Config (sonst: lokale phpstan.neon / Paket-Default). */
+    public ?string $phpstanConfig = null;
+
     public static function load(string $projectRoot): self
     {
         $config = new self();
@@ -35,7 +48,7 @@ final class Config
         }
 
         $json = json_decode((string) file_get_contents($file), true);
-        $data = is_array($json) ? ($json['extra']['nodus-docker'] ?? []) : [];
+        $data = is_array($json) ? ($json['extra']['nodus-dev'] ?? []) : [];
 
         $config->dir = $data['dir'] ?? $config->dir;
         $config->appService = $data['app-service'] ?? $config->appService;
@@ -46,7 +59,19 @@ final class Config
             $config->environments = $data['environments'];
         }
 
+        $config->test = $data['test'] ?? $config->test;
+        $config->pintConfig = $data['pint-config'] ?? $config->pintConfig;
+        $config->phpstanConfig = $data['phpstan-config'] ?? $config->phpstanConfig;
+
         return $config;
+    }
+
+    /**
+     * Wurzel dieses Pakets (enthaelt config/, src/, bin/).
+     */
+    public static function packageRoot(): string
+    {
+        return \dirname(__DIR__);
     }
 
     /**

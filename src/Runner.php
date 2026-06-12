@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nodus\DockerTools;
+namespace Nodus\DevTools;
 
 /**
  * Baut die "docker compose -f ..."-Aufrufe und fuehrt sie TTY-durchreichend aus.
