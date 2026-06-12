@@ -1,0 +1,148 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/*
+ * nd — Nodus Docker Tools CLI
+ *
+ * Standalone: liest composer.json -> extra.nodus-docker und ruft "docker compose"
+ * mit den passenden -f-Dateien auf. Braucht keinen Composer-Runtime, nur PHP.
+ *
+ * Aufruf:  nd <befehl> [--env=dev|stage|prod] [args...]
+ */
+
+function nd_find_root(): string
+{
+    $dir = getcwd() ?: '.';
+
+    while ($dir !== '/' && $dir !== '' && $dir !== '.') {
+        if (is_file($dir.'/composer.json')) {
+            return $dir;
+        }
+        $dir = dirname($dir);
+    }
+
+    return getcwd() ?: '.';
+}
+
+function nd_load_config(string $root): array
+{
+    $defaults = [
+        'dir' => '.tools/docker',
+        'app-service' => 'app',
+        'artisan' => 'php artisan',
+        'default-env' => 'dev',
+        'environments' => [
+            'dev' => ['compose.yml', 'compose.dev.yml'],
+            'stage' => ['compose.yml', 'compose.stage.yml'],
+            'prod' => ['compose.yml', 'compose.prod.yml'],
+        ],
+    ];
+
+    $file = $root.'/composer.json';
+    if (is_file($file)) {
+        $json = json_decode((string) file_get_contents($file), true);
+        if (is_array($json) && isset($json['extra']['nodus-docker']) && is_array($json['extra']['nodus-docker'])) {
+            return array_replace($defaults, $json['extra']['nodus-docker']);
+        }
+    }
+
+    return $defaults;
+}
+
+function nd_help(string $self, string $appService): string
+{
+    return <<<TXT
+nd — Nodus Docker Tools
+
+Aufruf: {$self} <befehl> [--env=dev|stage|prod] [args...]
+
+  up            Container starten (up -d)
+  down          Container stoppen
+  build         Images bauen
+  ps            Container-Status
+  logs [svc]    Logs folgen (-f)
+  sh [svc]      Shell im Container (Default: {$appService})
+  exec ...      Befehl im App-Container
+  run ...       Einmal-Container (run --rm)
+  art ...       artisan im App-Container
+  fresh         artisan migrate:fresh --seed
+  help          Diese Hilfe
+
+Environment-Default und Compose-Dateien kommen aus
+composer.json -> extra.nodus-docker.
+
+TXT;
+}
+
+$argv = $_SERVER['argv'];
+$self = basename($argv[0] ?? 'nd');
+$args = array_slice($argv, 1);
+$sub = array_shift($args) ?? 'help';
+
+// --env / -e herausfiltern
+$env = null;
+$rest = [];
+for ($i = 0, $n = count($args); $i < $n; $i++) {
+    $token = $args[$i];
+
+    if ($token === '--env' || $token === '-e') {
+        $env = $args[++$i] ?? null;
+
+        continue;
+    }
+    if (str_starts_with($token, '--env=')) {
+        $env = substr($token, 6);
+
+        continue;
+    }
+
+    $rest[] = $token;
+}
+
+$root = nd_find_root();
+$config = nd_load_config($root);
+$env ??= $config['default-env'];
+$dir = $config['dir'];
+$service = $config['app-service'];
+$artisan = array_values(array_filter(preg_split('/\s+/', trim((string) $config['artisan'])) ?: []));
+
+if (in_array($sub, ['help', '--help', '-h', ''], true)) {
+    fwrite(STDOUT, nd_help($self, $service));
+    exit($sub === '' ? 1 : 0);
+}
+
+$known = ['up', 'down', 'build', 'ps', 'logs', 'sh', 'exec', 'run', 'art', 'artisan', 'fresh'];
+if (! in_array($sub, $known, true)) {
+    fwrite(STDERR, "Unbekannter Befehl '{$sub}'. 'nd help' zeigt alle Befehle.\n");
+    exit(1);
+}
+
+if (! isset($config['environments'][$env])) {
+    fwrite(STDERR, "Unbekanntes Environment '{$env}'. Bekannt: ".implode(', ', array_keys($config['environments']))."\n");
+    exit(2);
+}
+
+$base = ['docker', 'compose'];
+foreach ($config['environments'][$env] as $file) {
+    $base[] = '-f';
+    $base[] = $dir.'/'.$file;
+}
+
+$cmd = match ($sub) {
+    'up' => [...$base, 'up', '-d', ...$rest],
+    'down' => [...$base, 'down', ...$rest],
+    'build' => [...$base, 'build', ...$rest],
+    'ps' => [...$base, 'ps', ...$rest],
+    'logs' => [...$base, 'logs', '-f', ...$rest],
+    'sh' => [...$base, 'exec', ($rest[0] ?? $service), 'sh', '-c', 'command -v bash >/dev/null && exec bash || exec sh'],
+    'exec' => [...$base, 'exec', $service, ...$rest],
+    'run' => [...$base, 'run', '--rm', $service, ...$rest],
+    'art', 'artisan' => [...$base, 'exec', $service, ...$artisan, ...$rest],
+    'fresh' => [...$base, 'exec', $service, ...$artisan, 'migrate:fresh', '--seed', ...$rest],
+};
+
+$line = 'cd '.escapeshellarg($root).' && '.implode(' ', array_map('escapeshellarg', $cmd));
+passthru($line, $code);
+exit($code);

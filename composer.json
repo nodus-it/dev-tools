@@ -1,0 +1,44 @@
+{
+    "name": "nodus-it/docker-tools",
+    "description": "Einheitliche Docker-Compose-Befehle fuer Nodus-Projekte via Composer (d:up, d:sh, ...) und bin/nd.",
+    "type": "composer-plugin",
+    "keywords": [
+        "docker",
+        "docker-compose",
+        "composer-plugin",
+        "developer-tools",
+        "nodus-it"
+    ],
+    "homepage": "https://github.com/nodus-it/docker-tools",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Bastian Schur",
+            "email": "b.schur@nodus-it.de",
+            "homepage": "https://www.nodus-it.de",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/nodus-it/docker-tools/issues",
+        "source": "https://github.com/nodus-it/docker-tools"
+    },
+    "require": {
+        "php": "^8.2",
+        "composer-plugin-api": "^2.0"
+    },
+    "require-dev": {
+        "composer/composer": "^2.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nodus\\DockerTools\\": "src/"
+        }
+    },
+    "bin": [
+        "bin/nd"
+    ],
+    "extra": {
+        "class": "Nodus\\DockerTools\\Plugin"
+    }
+}
