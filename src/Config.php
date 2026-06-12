@@ -38,6 +38,10 @@ final class Config
     /** Optionaler Pfad zur projektlokalen PHPStan-Config (sonst: lokale phpstan.neon / Paket-Default). */
     public ?string $phpstanConfig = null;
 
+    /** Analyse-Pfade fuer den Zero-Config-Fall (keine lokale phpstan.neon vorhanden). */
+    /** @var list<string> */
+    public array $phpstanPaths = ['app', 'src'];
+
     public static function load(string $projectRoot): self
     {
         $config = new self();
@@ -62,6 +66,10 @@ final class Config
         $config->test = $data['test'] ?? $config->test;
         $config->pintConfig = $data['pint-config'] ?? $config->pintConfig;
         $config->phpstanConfig = $data['phpstan-config'] ?? $config->phpstanConfig;
+
+        if (! empty($data['phpstan-paths']) && is_array($data['phpstan-paths'])) {
+            $config->phpstanPaths = array_values($data['phpstan-paths']);
+        }
 
         return $config;
     }

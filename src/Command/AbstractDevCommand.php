@@ -121,6 +121,64 @@ abstract class AbstractDevCommand extends BaseCommand
     }
 
     /**
+     * Baut den Pint-Aufruf.
+     *
+     * @return list<string>
+     */
+    protected function pintArgs(bool $check): array
+    {
+        $cmd = ['vendor/bin/pint'];
+
+        if ($check) {
+            $cmd[] = '--test';
+        }
+
+        $cfg = $this->resolveQaConfig($this->config()->pintConfig, 'pint.json', 'config/pint.json');
+        if ($cfg !== null) {
+            $cmd[] = '--config='.$cfg;
+        }
+
+        return $cmd;
+    }
+
+    /**
+     * Baut den PHPStan-Aufruf. Reihenfolge:
+     *   1. explizit konfigurierte Config
+     *   2. projektlokale phpstan.neon(.dist) -> Autodiscovery
+     *   3. Zero-Config: zentrale Config + vorhandene Default-Pfade als CLI-Argument
+     *
+     * @return list<string>
+     */
+    protected function stanArgs(): array
+    {
+        $config = $this->config();
+        $root = $this->projectRoot();
+        $cmd = ['vendor/bin/phpstan', 'analyse', '--no-progress'];
+
+        if (is_string($config->phpstanConfig) && $config->phpstanConfig !== '') {
+            $cmd[] = '--configuration='.$config->phpstanConfig;
+
+            return $cmd;
+        }
+
+        if (is_file($root.'/phpstan.neon') || is_file($root.'/phpstan.neon.dist')) {
+            return $cmd; // PHPStan findet die lokale Config selbst
+        }
+
+        $bundled = Config::packageRoot().'/config/phpstan.neon';
+        if (is_file($bundled)) {
+            $cmd[] = '--configuration='.$bundled;
+        }
+        foreach ($config->phpstanPaths as $path) {
+            if (is_dir($root.'/'.$path)) {
+                $cmd[] = $path;
+            }
+        }
+
+        return $cmd;
+    }
+
+    /**
      * Ermittelt den Test-Runner-Befehl als Tokens.
      *
      * @return list<string>

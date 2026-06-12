@@ -16,7 +16,6 @@ final class SetupCommand extends AbstractDevCommand
     protected function configure(): void
     {
         $this->setName('app:setup')
-            ->setAliases(['setup'])
             ->setDescription('Projekt einrichten (.env, key:generate, migrate, npm build, ggf. Boost)');
     }
 

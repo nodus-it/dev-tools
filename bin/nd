@@ -42,6 +42,7 @@ function nd_load_config(string $root): array
         'test' => null,
         'pint-config' => null,
         'phpstan-config' => null,
+        'phpstan-paths' => ['app', 'src'],
     ];
 
     $file = $root.'/composer.json';
@@ -176,10 +177,26 @@ $pintCmd = function () use ($root, $config, $rest): array {
     return $cmd;
 };
 
-$stanCmd = function () use ($config, $rest): array {
+$stanCmd = function () use ($root, $config, $rest): array {
     $cmd = ['vendor/bin/phpstan', 'analyse', '--no-progress', ...$rest];
+
     if (is_string($config['phpstan-config']) && $config['phpstan-config'] !== '') {
         $cmd[] = '--configuration='.$config['phpstan-config'];
+
+        return $cmd;
+    }
+    if (is_file($root.'/phpstan.neon') || is_file($root.'/phpstan.neon.dist')) {
+        return $cmd; // lokale Config wird automatisch gefunden
+    }
+
+    $bundled = $root.'/vendor/nodus-it/dev-tools/config/phpstan.neon';
+    if (is_file($bundled)) {
+        $cmd[] = '--configuration='.$bundled;
+    }
+    foreach ((array) $config['phpstan-paths'] as $path) {
+        if (is_dir($root.'/'.$path)) {
+            $cmd[] = $path;
+        }
     }
 
     return $cmd;

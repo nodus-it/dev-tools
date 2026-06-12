@@ -12,7 +12,6 @@ final class QaTestCommand extends AbstractDevCommand
     protected function configure(): void
     {
         $this->setName('qa:test')
-            ->setAliases(['test'])
             ->setDescription('Tests ausfuehren (Pest/PHPUnit/artisan test, projektkonfigurierbar)');
     }
 

@@ -1,34 +1,32 @@
 # nodus-it/dev-tools
 
-Einheitliche Dev-Befehle für Nodus-Projekte. Statt in jedem Repo eigene
-`dev:up`/`dup`/`pint`/`qa`-Scripts zu pflegen, liegt die Logik zentral in
-diesem Composer-Plugin. Pro Projekt wird nur noch **konfiguriert**, nicht
-kopiert.
+Unified developer commands for Nodus projects. Instead of maintaining copied
+`dev:up`/`dup`/`pint`/`qa` scripts in every repo, the logic lives centrally in
+this Composer plugin. Per project you only **configure**, you don't copy.
 
-Zwei Befehlsgruppen aus einer Codebasis:
+Two command groups from one codebase:
 
-- **`d:*`** — Docker-Compose-Steuerung (`d:up`, `d:sh`, `d:art`, …)
-- **`qa:*`** — Code-Style, statische Analyse, Tests (`qa:pint`, `qa:stan`, `qa:test`, `qa`)
-- **`app:setup`** — frisch geklontes Projekt lauffähig machen
+- **`d:*`** — Docker Compose control (`d:up`, `d:sh`, `d:art`, …)
+- **`qa:*`** — code style, static analysis, tests (`qa:pint`, `qa:stan`, `qa:test`, `qa`)
+- **`app:setup`** — get a freshly cloned project running
 
-Drei Aufruf-Ebenen:
+Three invocation layers:
 
-| Form | funktioniert wo | Beispiel |
-|------|-----------------|----------|
-| `composer d:up` / `composer qa` | überall, kein Setup | sicherster Fallback |
-| `./vendor/bin/nd up` | überall nach `composer install` | CI |
-| `nd up` / `nd qa` | mit `.envrc`/direnv oder Alias | Alltag lokal |
+| Form | works where | example |
+|------|-------------|---------|
+| `composer d:up` / `composer qa` | everywhere, no setup | safest fallback |
+| `./vendor/bin/nd up` | everywhere after `composer install` | CI |
+| `nd up` / `nd qa` | with `.envrc`/direnv or an alias | local everyday use |
 
-## Installation (im Konsumenten-Projekt)
+## Installation (in the consuming project)
 
-`dev-tools` ist ein Dev-Werkzeug und gehört in die **`require-dev`** des
-Projekts:
+`dev-tools` is a dev tool and belongs in the project's **`require-dev`**:
 
 ```bash
 composer require --dev nodus-it/dev-tools
 ```
 
-Composer fragt, ob das Plugin laufen darf. Dauerhaft erlauben:
+Composer will ask whether the plugin may run. Allow it permanently:
 
 ```jsonc
 "config": {
@@ -38,22 +36,27 @@ Composer fragt, ob das Plugin laufen darf. Dauerhaft erlauben:
 }
 ```
 
-### Warum `require-dev` — und warum die Tools trotzdem mitkommen
+### Why `require-dev` — and why the tools still come along
 
-`dev-tools` zieht `laravel/pint` und `phpstan/phpstan` über sein eigenes
-**`require`** mit (nicht `require-dev`, denn das lädt nicht transitiv).
-Trotzdem landen sie **nie in der Produktion**:
+`dev-tools` pulls in `laravel/pint` and `phpstan/phpstan` through its own
+**`require`** (not `require-dev`, which is not installed transitively). They
+still **never end up in production**:
 
-- `composer install` (dev/CI) → `dev-tools` wird installiert → pint/phpstan kommen mit.
-- `composer install --no-dev` (Prod) → `dev-tools` steht im `require-dev` des
-  Projekts → der **gesamte Teilbaum** inkl. pint/phpstan wird übersprungen.
+- `composer install` (dev/CI) → `dev-tools` is installed → pint/phpstan come with it.
+- `composer install --no-dev` (prod) → `dev-tools` sits in the project's
+  `require-dev` → the **entire subtree** incl. pint/phpstan is skipped.
 
-Einzige Regel: `dev-tools` immer in `require-dev`, nie in `require`.
+The one rule: always put `dev-tools` in `require-dev`, never in `require`.
 
-## Konfiguration
+## Configuration
 
-Alles Projekt-Spezifische steht unter `extra.nodus-dev` in der
-`composer.json`. Alle Felder haben Defaults.
+**Zero-config goal:** if a project follows the convention (compose files
+`.tools/docker/compose.yml` + `compose.<env>.yml`, service `app`, Pest, a root
+`phpstan.neon`), it needs **no** `extra.nodus-dev` block at all. The section
+below is only for deviations.
+
+Everything project-specific lives under `extra.nodus-dev` in `composer.json`.
+Every field has a default.
 
 ```jsonc
 "extra": {
@@ -72,59 +75,75 @@ Alles Projekt-Spezifische steht unter `extra.nodus-dev` in der
 }
 ```
 
-| Feld | Default | Bedeutung |
-|------|---------|-----------|
-| `dir` | `.tools/docker` | Verzeichnis der Compose-Dateien |
-| `app-service` | `app` | Service für `sh`, `art`, `fresh` |
-| `artisan` | `php artisan` | Artisan-Aufruf im Container |
-| `default-env` | `dev` | Environment ohne `--env` |
-| `environments` | dev/stage/prod | Compose-Datei-Layer pro Environment |
-| `test` | _Heuristik_ | Test-Runner; ohne Angabe: Pest, sonst `artisan test` |
-| `pint-config` | _auto_ | Pfad zu Pint-Config (sonst lokale `pint.json` / Paket-Default) |
-| `phpstan-config` | _auto_ | Pfad zu PHPStan-Config (sonst lokale `phpstan.neon`) |
+| Field | Default | Meaning |
+|-------|---------|---------|
+| `dir` | `.tools/docker` | directory holding the compose files |
+| `app-service` | `app` | service used by `sh`, `art`, `fresh` |
+| `artisan` | `php artisan` | artisan invocation inside the container |
+| `default-env` | `dev` | environment used without `--env` |
+| `environments` | dev/stage/prod | compose file layers per environment |
+| `test` | _heuristic_ | test runner; without a value: Pest, otherwise `artisan test` |
+| `pint-config` | _auto_ | path to a Pint config (else local `pint.json` / package default) |
+| `phpstan-config` | _auto_ | path to a PHPStan config (else local `phpstan.neon` / central base) |
+| `phpstan-paths` | `["app","src"]` | analysis paths in the zero-config case only (no local `phpstan.neon`) |
 
-## Docker-Befehle (`d:*`)
+## Migrating an existing project
 
-| `composer …` | `nd …` | Wirkung |
-|--------------|--------|---------|
+Point an AI agent in the target project at [`ADOPT.md`](ADOPT.md) — it migrates
+the command layer and QA and clears out old script/config leftovers (Docker
+images are left untouched):
+
+```
+Read https://raw.githubusercontent.com/nodus-it/dev-tools/main/ADOPT.md
+and run the migration for this project.
+```
+
+## Docker commands (`d:*`)
+
+| `composer …` | `nd …` | effect |
+|--------------|--------|--------|
 | `d:up` | `nd up` | `compose up -d` |
 | `d:down` | `nd down` | `compose down` |
 | `d:build` | `nd build` | `compose build` |
 | `d:ps` | `nd ps` | `compose ps` |
 | `d:logs [svc]` | `nd logs [svc]` | `compose logs -f` |
-| `d:sh [svc]` | `nd sh [svc]` | Shell im Container (bash, sonst sh) |
-| `d:art …` | `nd art …` | `artisan` im App-Container |
+| `d:sh [svc]` | `nd sh [svc]` | shell in the container (bash, else sh) |
+| `d:art …` | `nd art …` | `artisan` in the app container |
 | `d:fresh` | `nd fresh` | `artisan migrate:fresh --seed` |
-| — | `nd exec …` | beliebiger Befehl im App-Container |
-| — | `nd run …` | Einmal-Container (`run --rm`) |
+| — | `nd exec …` | arbitrary command in the app container |
+| — | `nd run …` | one-off container (`run --rm`) |
 
-Environment wählen: `--env=prod` bzw. `-e prod`.
+Pick the environment: `--env=prod` or `-e prod`.
 
-Optionen an artisan durchreichen:
+Passing options through to artisan:
 
 ```bash
-nd art migrate --force                 # sauber durchgereicht
-composer d:art -- migrate --force      # via Composer das -- davor
+nd art migrate --force                 # passed through cleanly
+composer d:art -- migrate --force      # via Composer with the leading --
 ```
 
-## QA-Befehle (`qa:*`)
+## QA commands (`qa:*`)
 
-| `composer …` | `nd …` | Wirkung |
-|--------------|--------|---------|
-| `qa:pint` (`pint`) | `nd pint` | Pint fixen — `--test` nur prüfen |
-| `qa:stan` (`stan`) | `nd stan` | PHPStan-Analyse |
-| `qa:test` (`test`) | `nd test` | Tests (Pest/PHPUnit/artisan test) |
-| `qa` | `nd qa` | `pint --test` → `stan` → `test`, stoppt beim ersten Fehler |
+| `composer …` | `nd …` | effect |
+|--------------|--------|--------|
+| `qa:pint` | `nd pint` | run Pint — `--test` to only check |
+| `qa:stan` | `nd stan` | PHPStan analysis |
+| `qa:test` | `nd test` | tests (Pest/PHPUnit/artisan test) |
+| `qa` | `nd qa` | `pint --test` → `stan` → `test`, stops at the first failure |
 
-### Zentrale QA-Regeln, lokal erbbar
+> Deliberately **no** short composer aliases (`pint`/`test`/…) so the plugin
+> never shadows identically named project scripts. The short forms exist via the
+> `nd` binary. Docker stays under `d:*`.
 
-`dev-tools` bringt eine Basis-Config mit: `config/pint.json` und
-`config/phpstan.neon`. Die Befehle nutzen sie automatisch, solange das Projekt
-keine eigene mitbringt.
+### Central QA rules, locally inheritable
 
-- **Pint** kann nicht nativ erben — `qa:pint` zeigt darum per `--config` auf die
-  zentrale `pint.json` (oder eine lokale, falls vorhanden).
-- **PHPStan** erbt nativ. Lege im Projekt eine dünne `phpstan.neon` an:
+`dev-tools` ships a base config: `config/pint.json` and `config/phpstan.neon`.
+The commands use them automatically as long as the project does not provide its
+own.
+
+- **Pint** cannot inherit natively — `qa:pint` therefore points `--config` at the
+  central `pint.json` (or a local one, if present).
+- **PHPStan** inherits natively. Create a thin `phpstan.neon` in the project:
 
   ```neon
   includes:
@@ -136,32 +155,32 @@ keine eigene mitbringt.
           - src
   ```
 
-  Baselines (`phpstan-baseline.neon`) und Level-Overrides bleiben **im
-  Projekt**. Laravel-Projekte ergänzen `larastan` in ihrer eigenen
-  `require-dev` und in der lokalen `includes`-Liste — `dev-tools` bleibt
-  framework-agnostisch.
+  Baselines (`phpstan-baseline.neon`) and level overrides stay **in the
+  project**. Laravel projects add `larastan` to their own `require-dev` and to
+  the local `includes` list — `dev-tools` stays framework-agnostic and pulls in
+  no `illuminate/*`.
 
 ## `app:setup`
 
-`composer app:setup` (bzw. `nd setup`) richtet ein frisch geklontes Projekt
-ein — jeder Schritt ist durch Datei-Existenz abgesichert:
+`composer app:setup` (or `nd setup`) gets a freshly cloned project running —
+every step is guarded by file existence:
 
-1. `.env` aus `.env.example` (falls fehlt)
-2. `artisan key:generate` + `artisan migrate --force` (falls `artisan` da ist)
-3. `npm install && npm run build` (falls `package.json` da ist)
-4. `artisan boost:install` (falls `laravel/boost` installiert ist)
+1. `.env` from `.env.example` (if missing)
+2. `artisan key:generate` + `artisan migrate --force` (if `artisan` exists)
+3. `npm install && npm run build` (if `package.json` exists)
+4. `artisan boost:install` (if `laravel/boost` is installed)
 
-## `nd` ohne `vendor/bin/` (optional)
+## `nd` without `vendor/bin/` (optional)
 
-Eine `.envrc` im Projekt (mit [direnv](https://direnv.net/)):
+An `.envrc` in the project (using [direnv](https://direnv.net/)):
 
 ```bash
 PATH_add vendor/bin
 ```
 
-Danach genügt `nd up` / `nd qa` im Projektverzeichnis. Ohne direnv tut es ein
-Alias: `nd() { ./vendor/bin/nd "$@"; }`.
+Then `nd up` / `nd qa` works inside the project directory. Without direnv an
+alias does the job: `nd() { ./vendor/bin/nd "$@"; }`.
 
-## Lizenz
+## License
 
-MIT — siehe [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
