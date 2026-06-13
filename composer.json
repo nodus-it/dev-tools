@@ -43,6 +43,9 @@
         "bin/nd"
     ],
     "extra": {
-        "class": "Nodus\\DevTools\\Plugin"
+        "class": "Nodus\\DevTools\\Plugin",
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
     }
 }
