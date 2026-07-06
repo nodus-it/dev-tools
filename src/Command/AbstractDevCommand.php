@@ -8,6 +8,7 @@ use Composer\Command\BaseCommand;
 use Composer\Factory;
 use Nodus\DevTools\Config;
 use Nodus\DevTools\Runner;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -65,10 +66,30 @@ abstract class AbstractDevCommand extends BaseCommand
                 continue;
             }
 
+            // Der "--"-Separator (Composer/Shell) ist kein Tool-Argument und wuerde
+            // pint/phpstan/pest sonst dazu bringen, die folgenden Flags als
+            // Argumente statt Optionen zu lesen.
+            if ($token === '--') {
+                continue;
+            }
+
             $result[] = $token;
         }
 
         return $result;
+    }
+
+    /**
+     * Konfiguriert ein qa-Command so, dass zusaetzliche Tokens roh an das
+     * darunterliegende Tool (pint/phpstan/pest) durchgereicht werden: ein
+     * IS_ARRAY-Argument (nur fuer die Hilfe) plus ignoreValidationErrors(), damit
+     * Symfony beliebige Flags akzeptiert. Die echten Tokens holt execute() ueber
+     * passthroughArgs() aus argv — auch die, die hinter "--" stehen.
+     */
+    protected function addToolPassthrough(string $description): void
+    {
+        $this->addArgument('args', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, $description);
+        $this->ignoreValidationErrors();
     }
 
     protected function addEnvOption(): void
