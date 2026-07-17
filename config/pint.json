@@ -3,7 +3,8 @@
     "rules": {
         "declare_strict_types": false,
         "ordered_imports": {
-            "sort_algorithm": "alpha"
+            "sort_algorithm": "alpha",
+            "imports_order": ["const", "class", "function"]
         },
         "no_unused_imports": true
     }
