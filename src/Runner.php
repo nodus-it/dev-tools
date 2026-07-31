@@ -21,11 +21,28 @@ final class Runner
     }
 
     /**
-     * @return list<string> ["docker", "compose", "-f", "<dir>/<file>", ...]
+     * @return list<string> ["docker", "compose", "--env-file", "<root>/.env", "-f", "<dir>/<file>", ...]
      */
     public function baseArgs(string $env): array
     {
         $args = ['docker', 'compose'];
+
+        // Die `.env` des Projekts ausdruecklich mitgeben. Compose leitet sein
+        // Projektverzeichnis aus der ersten `-f`-Datei ab und sucht die Datei
+        // sonst NEBEN den Compose-Files statt im Repo-Root. Der Stack startet
+        // dann trotzdem — nur mit den Defaults aus den YAMLs statt mit den
+        // Projektwerten. Das faellt erst spaeter auf, an einem falschen
+        // Hostnamen oder einem Dienst, der ohne sein Passwort dasteht.
+        //
+        // Nur die Datei, NICHT `--project-directory`: Relative Volume-Pfade in
+        // den Compose-Files haengen am Projektverzeichnis und wuerden dadurch
+        // ins Leere zeigen.
+        $envFile = $this->projectRoot.'/.env';
+
+        if (is_file($envFile)) {
+            $args[] = '--env-file';
+            $args[] = $envFile;
+        }
 
         foreach ($this->config->filesFor($env) as $file) {
             $args[] = '-f';
