@@ -160,6 +160,54 @@ own.
   the local `includes` list — `dev-tools` stays framework-agnostic and pulls in
   no `illuminate/*`.
 
+### Architecture baseline (`Nodus\DevTools\Arch`)
+
+The stage-1 architecture rules of the Nodus standard ship as an executable
+helper. Add one file to the project and the rules travel with the package
+version — no per-repo copies to keep in sync:
+
+```php
+// tests/Arch/NodusBaselineTest.php
+<?php
+
+declare(strict_types=1);
+
+use Nodus\DevTools\Arch;
+
+Arch::baseline();
+```
+
+Requires **Pest** in the project (`pestphp/pest`, v3 or v4). What `baseline()`
+enforces:
+
+| Rule | Catches |
+|---|---|
+| no debug calls | `dd`, `dump`, `var_dump`, `print_r`, `ray`, `die` left in `app/` |
+| `declare(strict_types=1)` | files that silently coerce types |
+| namespace casing == path | `namespace app\Models;` — loads on macOS/Windows, fatals in the Linux container |
+| HTTP clients only in `App\Integrations` | `Http::get()` sprinkled through services instead of a Saloon connector |
+| Pest presets `php()` + `security()` | the common floor (`eval`, `extract`, weak hashes, …) |
+
+Arguments, for projects that deviate:
+
+```php
+Arch::baseline(
+    namespace: 'App',        // PSR-4 prefix of the application code
+    path: 'app',             // matching directory, relative to the project root
+    ignoring: ['passthru'],  // justified exceptions to the Pest presets
+);
+```
+
+Every rule is also callable on its own (`Arch::noDebugCalls()`,
+`Arch::strictTypes()`, `Arch::namespaceCasing()`, `Arch::httpOnlyInIntegrations()`,
+`Arch::pestPresets()`) — a project that has to drop one keeps the rest.
+
+**Why the casing rule is not a Pest arch rule:** arch tests work on *loaded*
+classes, and a wrongly cased namespace loads fine on a case-insensitive
+filesystem. `Nodus\DevTools\Analysis\NamespaceCasing` therefore reads the source
+instead, and also flags imports whose root segment differs only in case
+(`use app\Models\User;`).
+
 ## `app:setup`
 
 `composer app:setup` (or `nd setup`) gets a freshly cloned project running —

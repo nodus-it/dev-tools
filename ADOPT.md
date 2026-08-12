@@ -140,7 +140,34 @@ parameters:
 - Remove the old `pint`/`phpstan`/`test` scripts from `composer.json` — there's
   now `composer qa:pint` / `qa:stan` / `qa:test` / `qa`.
 
-### 6. Verify
+### 6. Wire up the architecture baseline
+
+Only if the project uses **Pest**. Create `tests/Arch/NodusBaselineTest.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Nodus\DevTools\Arch;
+
+Arch::baseline();
+```
+
+Pass `namespace:`/`path:` if the application code does not live in `App\`/`app`.
+
+Then run `composer qa:test` once and **report the violations — do not fix
+them**. The baseline regularly surfaces pre-existing debt (a forgotten `dump()`,
+a missing `strict_types`, an `Http::get()` outside `Integrations`). Cleaning
+that up is its own task with its own review; mixing it into the migration makes
+the diff unreadable.
+
+If a rule is genuinely wrong for this project, do not delete the file — call the
+remaining rules individually (`Arch::noDebugCalls()`, `Arch::strictTypes()`,
+`Arch::namespaceCasing()`, `Arch::httpOnlyInIntegrations()`,
+`Arch::pestPresets()`) and note in the report which one was dropped and why.
+
+### 7. Verify
 
 ```bash
 composer list | grep -E 'd:|qa'      # commands registered?
@@ -149,10 +176,11 @@ composer qa:stan                      # PHPStan runs
 composer d:ps                         # Docker mapping resolves
 ```
 
-### 7. Report
+### 8. Report
 
 Summarize: removed scripts, removed/added packages, moved/created configs,
-whether `extra.nodus-dev` was needed (and why). State explicitly that Docker
+whether `extra.nodus-dev` was needed (and why), and the architecture-baseline
+violations found (unfixed, with file and rule). State explicitly that Docker
 images/compose files were **deliberately left untouched**.
 
 ## Command reference
