@@ -12,8 +12,7 @@ final class Runner
     public function __construct(
         private readonly Config $config,
         private readonly string $projectRoot,
-    ) {
-    }
+    ) {}
 
     public function config(): Config
     {

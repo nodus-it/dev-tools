@@ -16,19 +16,13 @@ use Composer\Plugin\PluginInterface;
  * Damit ein Projekt das Plugin nutzen darf, muss in dessen composer.json stehen:
  *   "config": { "allow-plugins": { "nodus-it/dev-tools": true } }
  */
-final class Plugin implements PluginInterface, Capable
+final class Plugin implements Capable, PluginInterface
 {
-    public function activate(Composer $composer, IOInterface $io): void
-    {
-    }
+    public function activate(Composer $composer, IOInterface $io): void {}
 
-    public function deactivate(Composer $composer, IOInterface $io): void
-    {
-    }
+    public function deactivate(Composer $composer, IOInterface $io): void {}
 
-    public function uninstall(Composer $composer, IOInterface $io): void
-    {
-    }
+    public function uninstall(Composer $composer, IOInterface $io): void {}
 
     /**
      * @return array<class-string, class-string>

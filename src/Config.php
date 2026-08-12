@@ -44,7 +44,7 @@ final class Config
 
     public static function load(string $projectRoot): self
     {
-        $config = new self();
+        $config = new self;
         $file = $projectRoot.'/composer.json';
 
         if (! is_file($file)) {
