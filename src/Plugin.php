@@ -11,9 +11,9 @@ use Composer\Plugin\Capable;
 use Composer\Plugin\PluginInterface;
 
 /**
- * Registriert die d:*- und qa:*-Befehle bei Composer.
+ * Registers the d:* and qa:* commands with Composer.
  *
- * Damit ein Projekt das Plugin nutzen darf, muss in dessen composer.json stehen:
+ * A project may only use the plugin if its composer.json contains:
  *   "config": { "allow-plugins": { "nodus-it/dev-tools": true } }
  */
 final class Plugin implements Capable, PluginInterface

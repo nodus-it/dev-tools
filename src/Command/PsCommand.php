@@ -13,7 +13,7 @@ final class PsCommand extends AbstractDevCommand
     {
         $this->setName('d:ps')
             ->setAliases(['docker:ps'])
-            ->setDescription('Container-Status (compose ps)');
+            ->setDescription('Container status (compose ps)');
 
         $this->addEnvOption();
     }

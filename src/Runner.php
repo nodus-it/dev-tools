@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nodus\DevTools;
 
 /**
- * Baut die "docker compose -f ..."-Aufrufe und fuehrt sie TTY-durchreichend aus.
+ * Builds the "docker compose -f ..." invocations and runs them, passing the TTY through.
  */
 final class Runner
 {
@@ -26,16 +26,16 @@ final class Runner
     {
         $args = ['docker', 'compose'];
 
-        // Die `.env` des Projekts ausdruecklich mitgeben. Compose leitet sein
-        // Projektverzeichnis aus der ersten `-f`-Datei ab und sucht die Datei
-        // sonst NEBEN den Compose-Files statt im Repo-Root. Der Stack startet
-        // dann trotzdem — nur mit den Defaults aus den YAMLs statt mit den
-        // Projektwerten. Das faellt erst spaeter auf, an einem falschen
-        // Hostnamen oder einem Dienst, der ohne sein Passwort dasteht.
+        // Pass the project's `.env` explicitly. Compose derives its project
+        // directory from the first `-f` file and would otherwise look for the
+        // file NEXT TO the compose files instead of in the repository root. The
+        // stack still starts — but with the defaults from the YAML files rather
+        // than the project's values. That surfaces much later, as a wrong
+        // hostname or a service left without its password.
         //
-        // Nur die Datei, NICHT `--project-directory`: Relative Volume-Pfade in
-        // den Compose-Files haengen am Projektverzeichnis und wuerden dadurch
-        // ins Leere zeigen.
+        // Only the file, NOT `--project-directory`: relative volume paths in the
+        // compose files are resolved against the project directory and would
+        // point nowhere.
         $envFile = $this->projectRoot.'/.env';
 
         if (is_file($envFile)) {

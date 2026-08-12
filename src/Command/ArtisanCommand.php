@@ -14,10 +14,10 @@ final class ArtisanCommand extends AbstractDevCommand
     {
         $this->setName('d:art')
             ->setAliases(['d:artisan', 'docker:artisan'])
-            ->setDescription('artisan im App-Container ausfuehren');
+            ->setDescription('Run artisan inside the app container');
 
-        // Nur fuer die Hilfe-Anzeige; die echten Argumente kommen aus passthroughArgs().
-        $this->addArgument('args', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'artisan-Argumente');
+        // For the help output only; the real arguments come from passthroughArgs().
+        $this->addArgument('args', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'artisan arguments');
         $this->addEnvOption();
         $this->ignoreValidationErrors();
     }

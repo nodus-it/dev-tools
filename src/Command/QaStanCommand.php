@@ -12,7 +12,7 @@ final class QaStanCommand extends AbstractDevCommand
     protected function configure(): void
     {
         $this->setName('qa:stan')
-            ->setDescription('Statische Analyse mit PHPStan (lokale Config erbt zentrale via includes)');
+            ->setDescription('Static analysis with PHPStan (local config inherits the central one via includes)');
 
         $this->addToolPassthrough('Zusaetzliche PHPStan-Argumente (z. B. --memory-limit=1G)');
     }

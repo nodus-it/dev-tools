@@ -42,7 +42,7 @@ final class CommandProvider implements CommandProviderCapability
             new QaStanCommand,
             new QaTestCommand,
             new QaCommand,
-            // Projekt
+            // Project
             new SetupCommand,
         ];
     }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nodus\DevTools;
 
 /**
- * Liest die Projekt-Konfiguration aus composer.json -> extra.nodus-dev.
- * Alle Felder haben Defaults, damit das Tool auch ohne Konfiguration laeuft.
+ * Reads the project configuration from composer.json -> extra.nodus-dev.
+ * Every field has a default so the tool also runs without any configuration.
  */
 final class Config
 {
@@ -29,16 +29,16 @@ final class Config
 
     // -- QA (qa:*) -----------------------------------------------------------
 
-    /** Test-Runner-Befehl; null => Heuristik (pest, sonst artisan test). */
+    /** Test runner command; null => heuristic (pest, otherwise artisan test). */
     public ?string $test = null;
 
-    /** Optionaler Pfad zur projektlokalen Pint-Config (sonst: lokale pint.json / Paket-Default). */
+    /** Optional path to a project-local Pint config (otherwise: local pint.json / package default). */
     public ?string $pintConfig = null;
 
-    /** Optionaler Pfad zur projektlokalen PHPStan-Config (sonst: lokale phpstan.neon / Paket-Default). */
+    /** Optional path to a project-local PHPStan config (otherwise: local phpstan.neon / package default). */
     public ?string $phpstanConfig = null;
 
-    /** Analyse-Pfade fuer den Zero-Config-Fall (keine lokale phpstan.neon vorhanden). */
+    /** Paths to analyse in the zero-config case (no local phpstan.neon present). */
     /** @var list<string> */
     public array $phpstanPaths = ['app', 'src'];
 
@@ -75,7 +75,7 @@ final class Config
     }
 
     /**
-     * Wurzel dieses Pakets (enthaelt config/, src/, bin/).
+     * Root of this package (contains config/, src/, bin/).
      */
     public static function packageRoot(): string
     {
@@ -83,7 +83,7 @@ final class Config
     }
 
     /**
-     * @return list<string> artisan-Binary als Tokens (z. B. ["php", "artisan"])
+     * @return list<string> the artisan binary as tokens (e.g. ["php", "artisan"])
      */
     public function artisanTokens(): array
     {
@@ -91,13 +91,13 @@ final class Config
     }
 
     /**
-     * @return list<string> Compose-Datei-Liste fuer ein Environment (relativ zu $dir)
+     * @return list<string> compose files for an environment (relative to $dir)
      */
     public function filesFor(string $env): array
     {
         if (! isset($this->environments[$env])) {
             throw new \RuntimeException(
-                "Unbekanntes Environment '{$env}'. Bekannt: ".implode(', ', array_keys($this->environments))
+                "Unknown environment '{$env}'. Known: ".implode(', ', array_keys($this->environments))
             );
         }
 

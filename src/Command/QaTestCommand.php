@@ -12,7 +12,7 @@ final class QaTestCommand extends AbstractDevCommand
     protected function configure(): void
     {
         $this->setName('qa:test')
-            ->setDescription('Tests ausfuehren (Pest/PHPUnit/artisan test, projektkonfigurierbar)');
+            ->setDescription('Run tests (Pest/PHPUnit/artisan test, configurable per project)');
 
         $this->addToolPassthrough('Zusaetzliche Test-Runner-Argumente (z. B. --parallel --log-junit junit.xml)');
     }
