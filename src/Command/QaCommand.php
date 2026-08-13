@@ -9,16 +9,16 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Komplette QA-Kette: Pint (--test) -> PHPStan -> Tests. Stoppt beim ersten Fehler.
+ * The full QA chain: Pint (--test) -> PHPStan -> tests. Stops at the first failure.
  */
 final class QaCommand extends AbstractDevCommand
 {
     protected function configure(): void
     {
         $this->setName('qa')
-            ->setDescription('QA-Kette: Pint (pruefen) -> PHPStan -> Tests');
+            ->setDescription('QA chain: Pint (check) -> PHPStan -> tests');
 
-        $this->addOption('fix', null, InputOption::VALUE_NONE, 'Pint korrigieren statt nur pruefen');
+        $this->addOption('fix', null, InputOption::VALUE_NONE, 'Fix with Pint instead of only checking');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -32,13 +32,13 @@ final class QaCommand extends AbstractDevCommand
             $code = $this->runHost($cmd);
 
             if ($code !== 0) {
-                $output->writeln("<error>{$label} fehlgeschlagen (Exit {$code}) — QA-Kette abgebrochen.</error>");
+                $output->writeln("<error>{$label} failed (exit {$code}) — QA chain aborted.</error>");
 
                 return $code;
             }
         }
 
-        $output->writeln('<info>QA gruen.</info>');
+        $output->writeln('<info>QA green.</info>');
 
         return 0;
     }

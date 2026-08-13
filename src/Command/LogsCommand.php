@@ -14,9 +14,9 @@ final class LogsCommand extends AbstractDevCommand
     {
         $this->setName('d:logs')
             ->setAliases(['docker:logs'])
-            ->setDescription('Logs folgen (compose logs -f)');
+            ->setDescription('Follow logs (compose logs -f)');
 
-        $this->addArgument('service', InputArgument::OPTIONAL, 'Nur dieser Service');
+        $this->addArgument('service', InputArgument::OPTIONAL, 'Only this service');
         $this->addEnvOption();
     }
 

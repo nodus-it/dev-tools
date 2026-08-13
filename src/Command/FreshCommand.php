@@ -13,7 +13,7 @@ final class FreshCommand extends AbstractDevCommand
     {
         $this->setName('d:fresh')
             ->setAliases(['docker:fresh'])
-            ->setDescription('Datenbank neu aufsetzen (artisan migrate:fresh --seed)');
+            ->setDescription('Recreate the database (artisan migrate:fresh --seed)');
 
         $this->addEnvOption();
     }

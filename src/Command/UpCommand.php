@@ -13,7 +13,7 @@ final class UpCommand extends AbstractDevCommand
     {
         $this->setName('d:up')
             ->setAliases(['docker:up'])
-            ->setDescription('Container starten (compose up -d)');
+            ->setDescription('Start containers (compose up -d)');
 
         $this->addEnvOption();
     }

@@ -14,9 +14,9 @@ final class ShCommand extends AbstractDevCommand
     {
         $this->setName('d:sh')
             ->setAliases(['docker:sh'])
-            ->setDescription('Shell im App-Container oeffnen (bash, sonst sh)');
+            ->setDescription('Open a shell in the app container (bash, else sh)');
 
-        $this->addArgument('service', InputArgument::OPTIONAL, 'Service (Default: app-service aus Config)');
+        $this->addArgument('service', InputArgument::OPTIONAL, 'Service (default: the app service from the config)');
         $this->addEnvOption();
     }
 

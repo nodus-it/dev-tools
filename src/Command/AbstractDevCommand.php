@@ -40,16 +40,16 @@ abstract class AbstractDevCommand extends BaseCommand
     }
 
     /**
-     * Rohe Tokens hinter dem Command-Namen aus argv, ohne --env/-e.
-     * Noetig fuer sauberes Durchreichen von artisan-Optionen (z. B. --force),
-     * die die Symfony-Console sonst selbst zu parsen versucht.
+     * Raw tokens after the command name from argv, without --env/-e.
+     * Needed to pass artisan options (e.g. --force) through cleanly; the
+     * Symfony console would otherwise try to parse them itself.
      *
      * @return list<string>
      */
     protected function passthroughArgs(): array
     {
         $argv = $_SERVER['argv'] ?? [];
-        // argv[0] = composer-Binary, argv[1] = Command-Name -> beides weg
+        // argv[0] = composer binary, argv[1] = command name -> drop both
         $tokens = array_slice($argv, 2);
 
         $result = [];
@@ -57,7 +57,7 @@ abstract class AbstractDevCommand extends BaseCommand
             $token = $tokens[$i];
 
             if ($token === '--env' || $token === '-e') {
-                $i++; // Wert ueberspringen
+                $i++; // skip the value
 
                 continue;
             }
@@ -66,9 +66,9 @@ abstract class AbstractDevCommand extends BaseCommand
                 continue;
             }
 
-            // Der "--"-Separator (Composer/Shell) ist kein Tool-Argument und wuerde
-            // pint/phpstan/pest sonst dazu bringen, die folgenden Flags als
-            // Argumente statt Optionen zu lesen.
+            // The "--" separator (Composer/shell) is not a tool argument; left in,
+            // it would make pint/phpstan/pest read the following flags as
+            // arguments instead of options.
             if ($token === '--') {
                 continue;
             }
@@ -80,11 +80,11 @@ abstract class AbstractDevCommand extends BaseCommand
     }
 
     /**
-     * Konfiguriert ein qa-Command so, dass zusaetzliche Tokens roh an das
-     * darunterliegende Tool (pint/phpstan/pest) durchgereicht werden: ein
-     * IS_ARRAY-Argument (nur fuer die Hilfe) plus ignoreValidationErrors(), damit
-     * Symfony beliebige Flags akzeptiert. Die echten Tokens holt execute() ueber
-     * passthroughArgs() aus argv — auch die, die hinter "--" stehen.
+     * Configures a qa command so additional tokens are passed raw to the
+     * underlying tool (pint/phpstan/pest): an IS_ARRAY argument (for the help
+     * output only) plus ignoreValidationErrors(), so Symfony accepts arbitrary
+     * flags. execute() takes the real tokens from argv via passthroughArgs() —
+     * including those behind "--".
      */
     protected function addToolPassthrough(string $description): void
     {
@@ -98,7 +98,7 @@ abstract class AbstractDevCommand extends BaseCommand
             'env',
             'e',
             InputOption::VALUE_REQUIRED,
-            'Ziel-Environment (dev|stage|prod)'
+            'Target environment (dev|stage|prod)'
         );
     }
 
@@ -108,7 +108,7 @@ abstract class AbstractDevCommand extends BaseCommand
     }
 
     /**
-     * Fuehrt einen Host-Befehl im Projekt-Root aus (TTY durchgereicht).
+     * Runs a host command in the project root (TTY passed through).
      *
      * @param  list<string>  $cmd
      */
@@ -122,8 +122,8 @@ abstract class AbstractDevCommand extends BaseCommand
     }
 
     /**
-     * Pfad zu einer projektlokalen oder zentral mitgelieferten QA-Config.
-     * Reihenfolge: explizit konfiguriert -> lokal im Projekt -> Paket-Default.
+     * Path to a project-local or centrally shipped QA config.
+     * Order: explicitly configured -> local to the project -> package default.
      */
     protected function resolveQaConfig(?string $configured, string $localName, string $packageDefault): ?string
     {
@@ -133,7 +133,7 @@ abstract class AbstractDevCommand extends BaseCommand
 
         $local = $this->projectRoot().'/'.$localName;
         if (is_file($local)) {
-            return $local; // erbt i. d. R. die zentrale Config via includes/import
+            return $local; // usually inherits the central config via includes/import
         }
 
         $bundled = Config::packageRoot().'/'.$packageDefault;
@@ -142,7 +142,7 @@ abstract class AbstractDevCommand extends BaseCommand
     }
 
     /**
-     * Baut den Pint-Aufruf.
+     * Builds the Pint invocation.
      *
      * @return list<string>
      */
@@ -163,10 +163,10 @@ abstract class AbstractDevCommand extends BaseCommand
     }
 
     /**
-     * Baut den PHPStan-Aufruf. Reihenfolge:
-     *   1. explizit konfigurierte Config
-     *   2. projektlokale phpstan.neon(.dist) -> Autodiscovery
-     *   3. Zero-Config: zentrale Config + vorhandene Default-Pfade als CLI-Argument
+     * Builds the PHPStan invocation. Order:
+     *   1. explicitly configured config
+     *   2. project-local phpstan.neon(.dist) -> autodiscovery
+     *   3. zero config: central config + existing default paths as CLI arguments
      *
      * @return list<string>
      */
@@ -183,7 +183,7 @@ abstract class AbstractDevCommand extends BaseCommand
         }
 
         if (is_file($root.'/phpstan.neon') || is_file($root.'/phpstan.neon.dist')) {
-            return $cmd; // PHPStan findet die lokale Config selbst
+            return $cmd; // PHPStan picks up the local config itself
         }
 
         $bundled = Config::packageRoot().'/config/phpstan.neon';
@@ -200,7 +200,7 @@ abstract class AbstractDevCommand extends BaseCommand
     }
 
     /**
-     * Ermittelt den Test-Runner-Befehl als Tokens.
+     * Determines the test runner command as tokens.
      *
      * @return list<string>
      */
@@ -210,7 +210,7 @@ abstract class AbstractDevCommand extends BaseCommand
             return array_values(array_filter(preg_split('/\s+/', trim($config->test)) ?: []));
         }
 
-        // Heuristik: Pest, sonst artisan test
+        // Heuristic: Pest, otherwise artisan test
         if (is_file($this->projectRoot().'/vendor/bin/pest')) {
             return ['vendor/bin/pest'];
         }

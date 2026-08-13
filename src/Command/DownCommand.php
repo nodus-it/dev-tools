@@ -13,7 +13,7 @@ final class DownCommand extends AbstractDevCommand
     {
         $this->setName('d:down')
             ->setAliases(['docker:down'])
-            ->setDescription('Container stoppen (compose down)');
+            ->setDescription('Stop containers (compose down)');
 
         $this->addEnvOption();
     }

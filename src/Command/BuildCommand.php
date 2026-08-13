@@ -13,7 +13,7 @@ final class BuildCommand extends AbstractDevCommand
     {
         $this->setName('d:build')
             ->setAliases(['docker:build'])
-            ->setDescription('Images bauen (compose build)');
+            ->setDescription('Build images (compose build)');
 
         $this->addEnvOption();
     }

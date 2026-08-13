@@ -12,10 +12,10 @@ final class QaPintCommand extends AbstractDevCommand
     protected function configure(): void
     {
         $this->setName('qa:pint')
-            ->setDescription('Code-Style mit Pint (zentrale Regeln, lokal ueberschreibbar)');
+            ->setDescription('Code style with Pint (central rules, overridable per project)');
 
-        // Default = korrigieren. Pruef-Modus via durchgereichtem "--test"
-        // (z. B. in CI: composer qa:pint -- --test).
+        // Default = fix. Check mode via a passed-through "--test"
+        // (e.g. in CI: composer qa:pint -- --test).
         $this->addToolPassthrough('Zusaetzliche Pint-Argumente (z. B. --test, --dirty)');
     }
 
